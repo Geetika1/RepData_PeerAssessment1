@@ -5,21 +5,80 @@ output:
     keep_md: true
 ---
 
-
+```{r}
 ## Loading and preprocessing the data
+library(knitr)
+library(ggplot2)
+
+opts_chunk$set(echo = TRUE)
+
+setwd("/Users/geetikagangwani/Downloads/repres_assgnmt2")
+getwd()
+?read.csv
+data <- read.csv("activity.csv", header = TRUE, sep = ",")
+head(data)
+data_complete <- data[complete.cases(data), ]
+data$date <- as.Date(data$date, format = "%Y-%m-%d")
+head(data_complete)
+
 
 
 
 ## What is mean total number of steps taken per day?
 
+sum_steps <- aggregate(steps ~ date, data_complete, sum)
+head(sum_steps)
+hist(sum_steps$steps, xlab = "Steps per day", main = "Total number of steps per day")
+steps_mean <- mean(sum_steps$steps)
+steps_mean
+steps_median <- median(sum_steps$steps)
+steps_median
 
 
 ## What is the average daily activity pattern?
+mean_steps_interval <- aggregate(steps ~ interval, data_complete, mean)
+mean_steps_interval
+plot(mean_steps_interval$interval, mean_steps_interval$steps, type = "l", xlab="Time Intervals", ylab="Average number of steps", main="Average number of steps by Interval")
+
+max_steps_interval <- max(mean_steps_interval$steps)
+max_steps_interval
 
 
 
 ## Imputing missing values
 
+number_nas <- sum(is.na(data$steps))
+number_nas
+
+len <- nrow(data)
+new_data <- data
+for (i in 1:len) {
+  if(is.na(new_data$steps[i])) {
+    val <- mean_steps_interval$steps[which(mean_steps_interval$interval == new_data$interval[i])]
+    new_data$steps[i] <- val
+  }
+}
+head(new_data)
+new_data_day <- aggregate(steps ~ date, new_data, sum)
+head(new_data_day)
+hist(new_data_day$steps, xlab = "Steps per day", main = "Total number of steps per day")
+mean_new_data <- mean(new_data_day$steps)
+mean_new_data
+median_new_data <- median(new_data_day$steps)
+median_new_data
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+##Yes, there are differences in activity patterns
+new_data$date <- as.Date(new_data$date)
+weekdays1 <- c('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday')
+new_data$day_week <- factor((weekdays(new_data$date) %in% weekdays1), labels = c('weekend', 'weekday'))
+head(new_data)
+
+new_steps_weekday <- aggregate(steps ~ interval+day_week, new_data, mean)
+head(new_steps_weekday)
+
+week_plot <- ggplot(new_steps_weekday, aes(interval, steps)) + geom_line(stat = "identity", aes(colour = day_week)) + facet_grid(day_week ~ ., scales="fixed", space="fixed") + labs(x="Interval", y=expression("No of Steps")) + ggtitle("No of steps Per Interval by day type")
+print(week_plot)
+
+```
